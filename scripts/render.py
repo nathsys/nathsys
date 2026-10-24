@@ -50,11 +50,12 @@ SECTIONS = [("about", "About me"), ("projects", "Projects"), ("skills", "Skillse
 
 # Neutral text that matches GitHub's own, plus one accent (dark theme, light theme).
 ACCENTS = {
+    "pine": ("#80b2a3", "#2a453d"),   # #2a453d on light; same hue lightened to stay readable on dark
     "lime": ("#b5e853", "#4f7a0a"),
     "cyan": ("#5cc8e8", "#0b6e8a"),
     "rose": ("#f28bb0", "#b4235a"),
 }
-ACCENT = os.environ.get("ACCENT", "lime")
+ACCENT = os.environ.get("ACCENT", "pine")
 THEMES = {
     "dark": dict(text="#e6edf3", body="#c9d1d9", muted="#8b949e", faint="#30363d",
                  accent=ACCENTS[ACCENT][0]),
