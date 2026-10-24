@@ -1,0 +1,48 @@
+name: Metrics
+
+on:
+  schedule:
+    - cron: "17 3 * * *"   # every day at 03:17 UTC
+  workflow_dispatch:        # lets you run it by hand from the Actions tab
+  push:
+    branches: [main]
+
+permissions:
+  contents: write           # lets the action commit metrics.svg back to the repo
+
+jobs:
+  github-metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lowlighter/metrics@latest
+        with:
+          token: ${{ secrets.METRICS_TOKEN }}
+          template: terminal
+          filename: metrics.svg
+          # header = whoami, activity = commits, repositories = stars/forks/watchers
+          base: header, activity, repositories
+          base_indepth: yes          # makes the commit count cover your whole account, not only last year
+          repositories: 100
+          plugin_isocalendar: yes    # streak and average commits per day
+          plugin_isocalendar_duration: full-year
+          config_timezone: Europe/Amsterdam
+          # Colours: #382b26 (brown) and #b8c2b9 (sage), plus shades mixed from the two
+          extras_css: |
+            svg { color: #b8c2b9 !important; }
+            .header { background: #b8c2b9 !important; border-radius: 0 !important; }
+            .title { color: #382b26 !important; }
+            .button, .button.exit {
+              background: #382b26 !important; color: #b8c2b9 !important;
+              border-radius: 0 !important; text-shadow: none !important;
+            }
+            pre { background: #382b26 !important; color: #b8c2b9 !important; border-radius: 0 !important; }
+            .banner, footer { color: #b8c2b9 !important; opacity: .6; }
+            .ps1-path, .ps1-location, .warnings { color: #b8c2b9 !important; }
+            .isocalendar svg { filter: grayscale(1) brightness(1.1) opacity(.85) !important; }
+            :root {
+              --color-calendar-graph-day-bg: #473d38;
+              --color-calendar-graph-day-L1-bg: #5e5852;
+              --color-calendar-graph-day-L2-bg: #7e7e77;
+              --color-calendar-graph-day-L3-bg: #9ea49c;
+              --color-calendar-graph-day-L4-bg: #b8c2b9;
+            }
