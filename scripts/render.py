@@ -46,7 +46,24 @@ SKILLS = [
     ("Tooling", ["Git", "GitHub Actions", "CMake", "Cargo", "probe-rs", "Linux"]),
 ]
 
-SECTIONS = [("about", "About me"), ("projects", "Projects"), ("skills", "Skillset")]
+ABOUT_INTRO = "I'm Nathan, an MSc student in Computer & Embedded Systems Engineering at TU Delft."
+THESIS = dict(
+    kind="Bachelor thesis",
+    place="Leiden University (LIACS)",
+    title="Side-channel analysis of the PROACT chip prototype",
+    points=[
+        "Captured 160,000 power traces from four cryptographic co-processors on an FPGA: "
+        "two AES cores, Ascon and Xoodyak",
+        "Wrote the capture firmware in C and the analysis pipelines in Python for TVLA, SNR and CPA",
+        "Found significant data-dependent leakage in all four co-processors",
+        "Recovered the full AES-128 key from both AES cores with first-order CPA",
+    ],
+)
+ABOUT_OUTRO = ("I'm looking for internships in the Netherlands in embedded systems, firmware, "
+               "hardware security or software.")
+CONTACT = ("Get in touch on ", "LinkedIn")
+
+SECTIONS = [("about", "About me"), ("projects", "Projects"), ("thesis", "Thesis"), ("skills", "Skillset")]
 
 # Neutral text that matches GitHub's own, plus one accent (dark theme, light theme).
 ACCENTS = {
@@ -169,6 +186,54 @@ def section_title(c, label):
     return svg(H, "".join(out), label, weights=(700,))
 
 
+def paragraph(c, x, y, text, max_w, size=15, lead=25, fill=None):
+    """Wrapped body text. Returns (svg, y of the last baseline)."""
+    out = []
+    lines = wrap(text, size, max_w)
+    for i, line in enumerate(lines):
+        out.append(t(x, y + i * lead, line, size, fill or c["body"]))
+    return "".join(out), y + (len(lines) - 1) * lead
+
+
+def about(c):
+    out = []
+    body, y = paragraph(c, 0, 34, ABOUT_INTRO, W)
+    out.append(body)
+    body, y = paragraph(c, 0, y + 40, ABOUT_OUTRO, W)
+    out.append(body)
+    return svg(int(y + 16), "".join(out), f"{ABOUT_INTRO} {ABOUT_OUTRO}", weights=(400,))
+
+
+def thesis_alt():
+    return " ".join([f'{THESIS["kind"]}, {THESIS["place"]}: {THESIS["title"]}.']
+                    + [p + "." for p in THESIS["points"]])
+
+
+def thesis(c):
+    y = 36
+    out = [t(0, y, THESIS["title"], 17, c["text"], 700),
+           t(W, y, THESIS["place"], 13, c["muted"], 500, "end")]
+    y += 26
+    out.append(t(0, y, THESIS["kind"], 14, c["accent"], 700))
+    y += 36
+    for point in THESIS["points"]:
+        out.append(f'<rect x="2" y="{y - 7}" width="6" height="6" fill="{c["accent"]}"/>')
+        body, y = paragraph(c, 22, y, point, W - 22)
+        out.append(body)
+        y += 30
+    return svg(int(y - 8), "".join(out), thesis_alt(), weights=(400, 500, 700))
+
+
+def contact(c):
+    lead, link = CONTACT
+    x = len(lead) * 15 * ADVANCE
+    out = [t(0, 44, lead, 15, c["body"]),
+           t(x, 44, link, 15, c["accent"], 700),
+           f'<line x1="{x:.1f}" y1="49.5" x2="{x + len(link) * 15 * ADVANCE:.1f}" y2="49.5" '
+           f'stroke="{c["accent"]}"/>']
+    return svg(64, "".join(out), lead + link, weights=(400, 700))
+
+
 def project_row(c, name, lang, desc, tags):
     y = 36
     out = [t(0, y, name, 19, c["accent"], 700), t(W, y, lang, 13, c["muted"], 500, "end")]
@@ -204,7 +269,10 @@ def main():
     contributions, stars = fetch_stats(token)
     for mode, c in THEMES.items():
         files = {f"hero-{mode}.svg": hero(c, contributions, stars),
-                 f"skills-{mode}.svg": skills(c)}
+                 f"skills-{mode}.svg": skills(c),
+                 f"about-{mode}.svg": about(c),
+                 f"thesis-{mode}.svg": thesis(c),
+                 f"contact-{mode}.svg": contact(c)}
         for slug, label in SECTIONS:
             files[f"section-{slug}-{mode}.svg"] = section_title(c, label)
         for p in PROJECTS:
