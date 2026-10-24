@@ -2,12 +2,12 @@
 """Render the README graphics in assets/, each in a light and a dark variant.
 
 The header pulls total contributions and stars earned from the GitHub API.
-Lilex (SIL OFL 1.1, assets/fonts) is embedded in every SVG, because a README
-image cannot load fonts from anywhere else.
+Text is drawn from Lilex glyph outlines (SIL OFL 1.1, assets/fonts), so it
+looks identical in every browser at every scale. scripts/extract_glyphs.py
+produced the outlines.
 
 Usage: GITHUB_TOKEN=... python3 scripts/render.py
 """
-import base64
 import json
 import os
 import sys
@@ -79,36 +79,49 @@ THEMES = {
     "light": dict(text="#1f2328", body="#31373d", muted="#59636e", faint="#d1d9e0",
                   accent=ACCENTS[ACCENT][1]),
 }
-FAMILY = "Lilex, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
-ADVANCE = 0.6          # Lilex is monospaced: every glyph is 600/1000 em wide
+with open(os.path.join(OUT, "fonts", "lilex-glyphs.json")) as f:
+    FONT = json.load(f)
+UPM = FONT["unitsPerEm"]
+ADVANCE = FONT["advance"] / UPM      # Lilex is monospaced: every glyph is 600/1000 em wide
 W = 840
+_used = set()                        # glyphs referenced by the SVG being built
 
 
-def font_css(weights):
-    rules = []
-    for weight, name in ((400, "Regular"), (500, "Medium"), (700, "Bold")):
-        if weight in weights:
-            with open(os.path.join(OUT, "fonts", f"Lilex-{name}.subset.woff2"), "rb") as f:
-                data = base64.b64encode(f.read()).decode()
-            rules.append(f"@font-face{{font-family:Lilex;font-weight:{weight};"
-                         f"src:url(data:font/woff2;base64,{data}) format('woff2')}}")
-    return "<style>" + "".join(rules) + "</style>"
+def runs(x, y, parts, size, anchor="start", spacing=0):
+    """Draw text from glyph outlines. parts is a list of (text, fill, weight) runs."""
+    k = size / UPM
+    step = FONT["advance"] + spacing / k
+    n = sum(len(text) for text, _, _ in parts)
+    if anchor == "end":
+        x -= (n * step - spacing / k) * k
+    out, i = [], 0
+    for text, fill, weight in parts:
+        uses = []
+        for ch in text:
+            if ch in FONT["glyphs"][str(weight)]:
+                gid = f"g{weight}-{ord(ch):x}"
+                _used.add((gid, str(weight), ch))
+                uses.append(f'<use href="#{gid}" x="{i * step:.0f}"/>')
+            i += 1
+        if uses:
+            out.append(f'<g fill="{fill}" transform="translate({x:.1f} {y:.1f}) scale({k:.4f} {-k:.4f})">'
+                       + "".join(uses) + "</g>")
+    return "".join(out)
 
 
 def t(x, y, s, size, fill, weight=400, anchor="start", spacing=0):
-    ls = f' letter-spacing="{spacing}"' if spacing else ""
-    return (f'<text x="{x:.1f}" y="{y:.1f}" font-size="{size}" font-weight="{weight}" '
-            f'fill="{fill}" text-anchor="{anchor}"{ls}>{escape(s)}</text>')
+    return runs(x, y, [(s, fill, weight)], size, anchor, spacing)
 
 
 def rule(y, c):
     return f'<line x1="0" y1="{y - 0.5:.1f}" x2="{W}" y2="{y - 0.5:.1f}" stroke="{c["faint"]}"/>'
 
 
-def svg(h, body, title, weights=(400, 500, 700)):
+def svg(h, body, title):
+    defs = "".join(f'<path id="{gid}" d="{FONT["glyphs"][w][ch]}"/>' for gid, w, ch in sorted(_used))
+    _used.clear()
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{h}" viewBox="0 0 {W} {h}" '
-            f'font-family="{FAMILY}" role="img"><title>{escape(title)}</title>'
-            f'<defs>{font_css(weights)}</defs>{body}</svg>\n')
+            f'preserveAspectRatio="none" role="img"><title>{escape(title)}</title><defs>{defs}</defs>{body}</svg>\n')
 
 
 def wrap(text, size, max_w):
@@ -166,24 +179,24 @@ def fetch_stats(token):
 # ---------------------------------------------------------------- graphics
 
 def hero(c, contributions, stars):
-    H = 160
+    H = 154
     out = [t(-2, 52, NAME, 46, c["text"], 700, spacing=-1),
            t(0, 88, SUBTITLE, 16, c["muted"]),
            rule(116, c)]
     y = 146
-    num = f'font-weight="700" fill="{c["accent"]}"'
-    out.append(f'<text x="0" y="{y}" font-size="14" fill="{c["muted"]}" xml:space="preserve">'
-               f'<tspan {num}>{contributions:,}</tspan> contributions  ·  '
-               f'<tspan {num}>{stars:,}</tspan> stars earned</text>')
+    out.append(runs(0, y, [(f"{contributions:,}", c["accent"], 700),
+                           (" contributions  \u00b7  ", c["muted"], 400),
+                           (f"{stars:,}", c["accent"], 700),
+                           (" stars earned", c["muted"], 400)], 14))
     out.append(t(W, y, STATUS, 14, c["text"], 500, "end"))
     title = f"{NAME}. {SUBTITLE} {contributions:,} contributions, {stars:,} stars earned. {STATUS}."
     return svg(H, "".join(out), title)
 
 
 def section_title(c, label):
-    H = 78                 # the top padding separates sections, so the README needs no spacers
-    out = [t(0, 60, label, 21, c["text"], 700), rule(H, c)]
-    return svg(H, "".join(out), label, weights=(700,))
+    H = 52                 # the top padding separates sections, so the README needs no spacers
+    out = [t(0, 34, label, 21, c["text"], 700), rule(H, c)]
+    return svg(H, "".join(out), label)
 
 
 def paragraph(c, x, y, text, max_w, size=15, lead=25, fill=None):
@@ -197,11 +210,11 @@ def paragraph(c, x, y, text, max_w, size=15, lead=25, fill=None):
 
 def about(c):
     out = []
-    body, y = paragraph(c, 0, 34, ABOUT_INTRO, W)
+    body, y = paragraph(c, 0, 26, ABOUT_INTRO, W)
     out.append(body)
-    body, y = paragraph(c, 0, y + 40, ABOUT_OUTRO, W)
+    body, y = paragraph(c, 0, y + 34, ABOUT_OUTRO, W)
     out.append(body)
-    return svg(int(y + 16), "".join(out), f"{ABOUT_INTRO} {ABOUT_OUTRO}", weights=(400,))
+    return svg(int(y + 8), "".join(out), f"{ABOUT_INTRO} {ABOUT_OUTRO}")
 
 
 def thesis_alt():
@@ -210,7 +223,7 @@ def thesis_alt():
 
 
 def thesis(c):
-    y = 36
+    y = 28
     out = [t(0, y, THESIS["title"], 17, c["text"], 700),
            t(W, y, THESIS["place"], 13, c["muted"], 500, "end")]
     y += 26
@@ -221,28 +234,28 @@ def thesis(c):
         body, y = paragraph(c, 22, y, point, W - 22)
         out.append(body)
         y += 30
-    return svg(int(y - 8), "".join(out), thesis_alt(), weights=(400, 500, 700))
+    return svg(int(y - 16), "".join(out), thesis_alt())
 
 
 def contact(c):
     lead, link = CONTACT
     x = len(lead) * 15 * ADVANCE
-    out = [t(0, 44, lead, 15, c["body"]),
-           t(x, 44, link, 15, c["accent"], 700),
-           f'<line x1="{x:.1f}" y1="49.5" x2="{x + len(link) * 15 * ADVANCE:.1f}" y2="49.5" '
+    out = [t(0, 30, lead, 15, c["body"]),
+           t(x, 30, link, 15, c["accent"], 700),
+           f'<line x1="{x:.1f}" y1="35.5" x2="{x + len(link) * 15 * ADVANCE:.1f}" y2="35.5" '
            f'stroke="{c["accent"]}"/>']
-    return svg(64, "".join(out), lead + link, weights=(400, 700))
+    return svg(44, "".join(out), lead + link)
 
 
 def project_row(c, name, lang, desc, tags):
-    y = 36
+    y = 28
     out = [t(0, y, name, 19, c["accent"], 700), t(W, y, lang, 13, c["muted"], 500, "end")]
     y += 32
     for line in wrap(desc, 15, W):
         out.append(t(0, y, line, 15, c["body"]))
         y += 25
-    out.append(t(0, y + 4, "  ·  ".join(tags), 13, c["muted"]))
-    H = int(y + 30)
+    out.append(t(0, y + 4, " · ".join(tags), 13, c["muted"]))
+    H = int(y + 22)
     out.append(rule(H, c))
     return svg(H, "".join(out), f"{name} ({lang}): {desc}")
 
@@ -252,14 +265,14 @@ def skills(c):
     out, y = [], 0
     for label, items in SKILLS:
         lines = wrap(", ".join(items), 15, W - label_w)
-        y += 38
+        y += 32
         out.append(t(0, y, label, 14, c["accent"], 500))
         for i, line in enumerate(lines):
             out.append(t(label_w, y + i * 25, line, 15, c["body"]))
-        y += (len(lines) - 1) * 25 + 20
+        y += (len(lines) - 1) * 25 + 16
         out.append(rule(y, c))
     title = "Skillset. " + " ".join(f"{label}: {', '.join(items)}." for label, items in SKILLS)
-    return svg(int(y) + 16, "".join(out), title, weights=(400, 500))
+    return svg(int(y) + 4, "".join(out), title)
 
 
 def main():
