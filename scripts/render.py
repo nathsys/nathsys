@@ -20,8 +20,8 @@ OUT = os.path.join(ROOT, "assets")
 USER = os.environ.get("GH_USER", "nathsys")
 
 NAME = "Nathanael Mohanu"
-SUBTITLE = "Embedded systems and hardware security. MSc student at TU Delft."
-STATUS = "open to internships in NL"
+SUBTITLE = "MSc Computer & Embedded Systems Engineering, TU Delft"
+STATUS = "open to internships in the Netherlands"
 
 PROJECTS = [
     ("bootloader", "Rust",
@@ -178,37 +178,18 @@ def fetch_stats(token):
 
 # ---------------------------------------------------------------- graphics
 
-# The header is a solid panel in the accent green, so it reads the same on light and dark.
-PANEL = dict(bg="#2a453d", text="#f1efe7", soft="#a8c3b8", line="#4d7064")
-
-
 def hero(c, contributions, stars):
-    H, pad = 270, 44
-    p = PANEL
-    out = [f'<clipPath id="panel"><rect width="{W}" height="{H}" rx="18"/></clipPath>',
-           f'<g clip-path="url(#panel)">',
-           f'<rect width="{W}" height="{H}" fill="{p["bg"]}"/>',
-           # Oversized initials bleeding off the right edge, a shade lighter than the panel.
-           f'<g stroke="{p["line"]}" stroke-width="{1.5 / (180 / UPM):.1f}">',
-           t(W + 22, 184, "NM", 180, "none", 700, "end", spacing=4),
-           "</g>",
-           "</g>",
-           t(pad, 70, "embedded systems / hardware security", 14, p["soft"], 500),
-           t(pad - 3, 132, NAME, 58, p["text"], 700, spacing=-2),
-           t(pad, 168, "MSc Computer & Embedded Systems Engineering, TU Delft", 16, p["soft"]),
-           f'<line x1="{pad}" y1="198.5" x2="{W - pad}" y2="198.5" stroke="{p["line"]}"/>']
-    y = 238
-    out.append(runs(pad, y, [(f"{contributions:,}", p["text"], 700),
-                             (" contributions  \u00b7  ", p["soft"], 400),
-                             (f"{stars:,}", p["text"], 700),
-                             (" stars earned", p["soft"], 400)], 15))
-    # Cream tag for availability.
-    tw = len(STATUS) * 14 * ADVANCE + 32
-    tx = W - pad - tw
-    out.append(f'<rect x="{tx:.1f}" y="{y - 23}" width="{tw:.1f}" height="34" rx="17" fill="{p["text"]}"/>')
-    out.append(t(tx + 16, y - 1, STATUS, 14, p["bg"], 700))
-    title = (f"{NAME}. Embedded systems and hardware security. MSc Computer and Embedded Systems "
-             f"Engineering, TU Delft. {contributions:,} contributions, {stars:,} stars earned. {STATUS}.")
+    H = 154
+    out = [t(-2, 52, NAME, 46, c["text"], 700, spacing=-1),
+           t(0, 88, SUBTITLE, 16, c["muted"]),
+           rule(116, c)]
+    y = 146
+    out.append(runs(0, y, [(f"{contributions:,}", c["accent"], 700),
+                           (" contributions  \u00b7  ", c["muted"], 400),
+                           (f"{stars:,}", c["accent"], 700),
+                           (" stars earned", c["muted"], 400)], 14))
+    out.append(t(W, y, STATUS, 14, c["text"], 500, "end"))
+    title = f"{NAME}. {SUBTITLE}. {contributions:,} contributions, {stars:,} stars earned. {STATUS}."
     return svg(H, "".join(out), title)
 
 
