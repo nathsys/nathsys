@@ -22,6 +22,8 @@ USER = os.environ.get("GH_USER", "nathsys")
 NAME = "Nathanael Mohanu"
 SUBTITLE = "MSc Computer & Embedded Systems Engineering, TU Delft"
 STATUS = "open to internships in the Netherlands"
+LANG_IGNORE = set()                   # language names to leave out of the languages bar
+LANG_TOP = 5                          # languages shown before the rest become "Other"
 
 PROJECTS = [
     ("bootloader", "Rust",
@@ -157,11 +159,30 @@ def fetch_stats(token):
         user(login: $login) {
           createdAt
           repositories(ownerAffiliations: OWNER, isFork: false, privacy: PUBLIC, first: 100) {
-            nodes { stargazerCount }
+            nodes {
+              stargazerCount
+              languages(first: 20, orderBy: {field: SIZE, direction: DESC}) {
+                edges { size node { name } }
+              }
+            }
           }
         }
       }""", {"login": USER})
     stars = sum(r["stargazerCount"] for r in u["repositories"]["nodes"])
+
+    # Bytes of code per language across your own public, non-fork repositories.
+    sizes = {}
+    for r in u["repositories"]["nodes"]:
+        for e in r["languages"]["edges"]:
+            name = e["node"]["name"]
+            if name not in LANG_IGNORE:
+                sizes[name] = sizes.get(name, 0) + e["size"]
+    total = sum(sizes.values()) or 1
+    ranked = sorted(sizes.items(), key=lambda kv: -kv[1])
+    langs = [(name, size / total) for name, size in ranked[:LANG_TOP]]
+    rest = sum(size for _, size in ranked[LANG_TOP:])
+    if rest:
+        langs.append(("Other", rest / total))
 
     # Each contributions query covers at most one year, so ask for every year since sign-up.
     first = datetime.fromisoformat(u["createdAt"].replace("Z", "+00:00")).year
@@ -173,13 +194,45 @@ def fetch_stats(token):
                      "{ contributionCalendar { totalContributions } }")
     years = gql(token, "query($login: String!) { user(login: $login) { %s } }" % " ".join(parts),
                 {"login": USER})
-    return sum(v["contributionCalendar"]["totalContributions"] for v in years.values()), stars
+    contributions = sum(v["contributionCalendar"]["totalContributions"] for v in years.values())
+    return contributions, stars, langs
 
 
 # ---------------------------------------------------------------- graphics
 
-def hero(c, contributions, stars):
-    H = 154
+def pct(frac):
+    return "<1%" if frac < 0.005 else f"{frac * 100:.0f}%"
+
+
+def languages(c, y, langs):
+    """Stacked bar of the most used languages with a legend under it. Returns (svg, bottom y)."""
+    shades = [1, 0.78, 0.6, 0.46, 0.36, 0.28]
+    out = [f'<clipPath id="bar"><rect x="0" y="{y}" width="{W}" height="8" rx="4"/></clipPath>',
+           '<g clip-path="url(#bar)">']
+    gap, x = 3, 0.0
+    usable = W - gap * (len(langs) - 1)
+    for i, (_, frac) in enumerate(langs):
+        w = max(frac * usable, 2)
+        out.append(f'<rect x="{x:.1f}" y="{y}" width="{w:.1f}" height="8" fill="{c["accent"]}" '
+                   f'fill-opacity="{shades[i]}"/>')
+        x += w + gap
+    out.append("</g>")
+
+    size, step = 13, 13 * ADVANCE
+    lx, ly = 0.0, y + 36
+    for i, (name, frac) in enumerate(langs):
+        label = f"{name} {pct(frac)}"
+        w = 14 + len(label) * step
+        if lx + w > W and lx > 0:
+            lx, ly = 0.0, ly + 24
+        out.append(f'<circle cx="{lx + 4:.1f}" cy="{ly - 4.5}" r="4" fill="{c["accent"]}" '
+                   f'fill-opacity="{shades[i]}"/>')
+        out.append(runs(lx + 14, ly, [(name, c["body"], 400), (" " + pct(frac), c["muted"], 400)], size))
+        lx += w + 26
+    return "".join(out), ly
+
+
+def hero(c, contributions, stars, langs):
     out = [t(-2, 52, NAME, 46, c["text"], 700, spacing=-1),
            t(0, 88, SUBTITLE, 16, c["muted"]),
            rule(116, c)]
@@ -189,8 +242,12 @@ def hero(c, contributions, stars):
                            (f"{stars:,}", c["accent"], 700),
                            (" stars earned", c["muted"], 400)], 14))
     out.append(t(W, y, STATUS, 14, c["text"], 500, "end"))
-    title = f"{NAME}. {SUBTITLE}. {contributions:,} contributions, {stars:,} stars earned. {STATUS}."
-    return svg(H, "".join(out), title)
+    bar, bottom = languages(c, y + 26, langs)
+    out.append(bar)
+    used = ", ".join(f"{name} {pct(frac)}" for name, frac in langs)
+    title = (f"{NAME}. {SUBTITLE}. {contributions:,} contributions, {stars:,} stars earned. {STATUS}. "
+             f"Most used languages: {used}.")
+    return svg(int(bottom + 8), "".join(out), title)
 
 
 def section_title(c, label):
@@ -279,9 +336,9 @@ def main():
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
         sys.exit("Set GITHUB_TOKEN")
-    contributions, stars = fetch_stats(token)
+    contributions, stars, langs = fetch_stats(token)
     for mode, c in THEMES.items():
-        files = {f"hero-{mode}.svg": hero(c, contributions, stars),
+        files = {f"hero-{mode}.svg": hero(c, contributions, stars, langs),
                  f"skills-{mode}.svg": skills(c),
                  f"about-{mode}.svg": about(c),
                  f"thesis-{mode}.svg": thesis(c),

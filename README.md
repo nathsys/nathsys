@@ -1,1 +1,1 @@
-<picture><source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg"><img src="assets/hero-light.svg" alt="Nathanael Mohanu. MSc Computer and Embedded Systems Engineering, TU Delft. Open to internships in the Netherlands." width="100%"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg"><img src="assets/hero-light.svg" alt="Nathanael Mohanu. MSc Computer and Embedded Systems Engineering, TU Delft. Open to internships in the Netherlands. Includes a bar of most used languages." width="100%"></picture>
