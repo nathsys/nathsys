@@ -1,19 +1,16 @@
-<p align="center">
-  <img src="assets/dashboard.svg" alt="Nathanael Mohanu, MSc Computer and Embedded Systems Engineering at TU Delft. GitHub stats, contribution activity, core technologies and languages." width="840" />
-</p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
+  <img src="assets/hero-light.svg" alt="Nathanael Mohanu. Embedded systems and hardware security. MSc student at TU Delft. Open to internships in the Netherlands." width="100%">
+</picture>
 
-### Projects
+<br>
 
-| Project | Description |
-|---|---|
-| **[bootloader](https://github.com/nathsys/bootloader)** | Slotted UART bootloader for STM32F4 in Rust, under 16 KB, with CRC-checked firmware updates and a sector-guarded flash driver. |
-| **[pyke](https://github.com/nathsys/pyke)** | Single-threaded C++20 perft engine reaching 2.4 billion positions per second, using PEXT tables and AVX-512. |
-| **[sunsnake](https://github.com/nathsys/sunsnake)** | Reusable C++20 chess move-generation library, fuzzed against Stockfish and tested in CI. |
+My bachelor thesis at Leiden University was a side-channel analysis of the PROACT chip prototype.
 
-### Research
+**Projects**
 
-Bachelor thesis at Leiden University on side-channel analysis of the PROACT chip prototype. I captured 160,000 power traces from four crypto co-processors on an FPGA and recovered the full AES-128 key from both AES cores.
+- [bootloader](https://github.com/nathsys/bootloader): UART bootloader for STM32F4, in Rust
+- [pyke](https://github.com/nathsys/pyke): perft engine, in C++
+- [sunsnake](https://github.com/nathsys/sunsnake): chess move-generation library, in C++
 
-### Contact
-
-Reach me on [LinkedIn](https://www.linkedin.com/in/nathanael-mohanu-7a14b4183/).
+[LinkedIn](https://www.linkedin.com/in/nathanael-mohanu-7a14b4183/)
