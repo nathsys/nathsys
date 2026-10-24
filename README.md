@@ -1,4 +1,4 @@
-<picture><source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg"><img src="assets/hero-light.svg" alt="Nathanael Mohanu. Embedded systems and hardware security. MSc Computer and Embedded Systems Engineering, TU Delft. Open to internships in the Netherlands." width="100%"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg"><img src="assets/hero-light.svg" alt="Nathanael Mohanu. MSc Computer and Embedded Systems Engineering, TU Delft. Open to internships in the Netherlands." width="100%"></picture>
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="assets/section-about-dark.svg"><img src="assets/section-about-light.svg" alt="About me" width="100%"></picture>
 
